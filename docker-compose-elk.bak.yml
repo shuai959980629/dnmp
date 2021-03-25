@@ -1,0 +1,130 @@
+version: '2.2'
+services:
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${KIBANA_VERSION}
+    container_name: kibana
+    hostname: kibana
+    restart: always
+    environment:
+      - TZ=$TZ
+      - I18N_LOCALE=${KIBANA_I18N_LOCALE}
+      - XPACK_GRAPH_ENABLED=true
+      - TIMELION_ENABLED=true
+      - XPACK_MONITORING_COLLECTION_ENABLED=true
+#      elasticsearch.hosts: http://elasticsearch:9200
+    ports:
+      - "${KIBANA_HOST}:5601"
+    networks:
+      - elastic
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:${LOGSTASH_VERSION}
+    container_name: logstash
+    hostname: logstash
+    environment:
+      TZ: "$TZ"
+    ports:
+      - "${LOGSTASH_HOST_PORT_C}:9600"
+      - "${LOGSTASH_HOST_PORT_S}:5044"
+    networks:
+      - elastic
+
+  es01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTICSEARCH_VERSION}
+    container_name: es01
+    environment:
+      - node.name=es01
+      - cluster.name=es-docker-cluster
+      - discovery.seed_hosts=es02,es03
+      - cluster.initial_master_nodes=es01,es02,es03
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ${ES1_DATA_DIR}:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+    networks:
+      - elastic
+
+  es02:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTICSEARCH_VERSION}
+    container_name: es02
+    environment:
+      - node.name=es02
+      - cluster.name=es-docker-cluster
+      - discovery.seed_hosts=es01,es03
+      - cluster.initial_master_nodes=es01,es02,es03
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ${ES2_DATA_DIR}:/usr/share/elasticsearch/data
+    networks:
+      - elastic
+  es03:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTICSEARCH_VERSION}
+    container_name: es03
+    environment:
+      - node.name=es03
+      - cluster.name=es-docker-cluster
+      - discovery.seed_hosts=es01,es02
+      - cluster.initial_master_nodes=es01,es02,es03
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ${ES3_DATA_DIR}:/usr/share/elasticsearch/data
+    networks:
+      - elastic
+
+
+#  kibana:
+#    image: docker.elastic.co/kibana/kibana:${KIBANA_VERSION}
+#    container_name: kibana
+#    environment:
+#      TZ: "$TZ"
+#      elasticsearch.hosts: http://127.0.0.1:9200
+#      I18N_LOCALE: "${KIBANA_I18N_LOCALE}"
+#    hostname: kibana
+#    depends_on:
+#      - elasticsearch
+#    restart: always
+#    ports:
+#      - "${KIBANA_HOST}:5601"
+#    volumes:
+#      - ${KIBANA_CONF_FILE}:/usr/share/kibana/config/kibana.yml
+#    networks:
+#      - elastic
+
+#  logstash:
+#    image: docker.elastic.co/logstash/logstash:${LOGSTASH_VERSION}
+#    container_name: logstash
+#    hostname: logstash
+#    restart: always
+#    depends_on:
+#      - elasticsearch
+#    environment:
+#      TZ: "$TZ"
+##      elasticsearch.hosts: http://127.0.0.1:9200
+#    volumes:
+#      - ${LOGSTASH_DATA_DIR}:/usr/share/logstash/data
+#      - ${LOGSTASH_CONF_FILE}:/usr/share/logstash/config/logstash.yml
+#    ports:
+#      - "${LOGSTASH_HOST_PORT_C}:9600"
+#      - "${LOGSTASH_HOST_PORT_S}:5044"
+#    networks:
+#      - elastic
+
+networks:
+  elastic:
+    driver: bridge

@@ -1,0 +1,87 @@
+version: "3"
+services:
+  # kafka 集群
+  kafka1:
+    image: wurstmeister/kafka
+    restart: always
+    container_name: kafka1
+    hostname: kafka1
+    ports:
+      - 9092:9092
+    environment:
+      TZ: "$TZ"
+      KAFKA_ADVERTISED_PORT: 9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://${IP}:9092
+      KAFKA_LISTENERS: PLAINTEXT://:9092
+      KAFKA_ZOOKEEPER_CONNECT: zk1:2181,zk2:2181,zk3:2181
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /etc/localtime:/etc/localtime
+      - ${KFK_DATA_DIR}:/kafka
+    external_links:
+      - zk1
+      - zk2
+      - zk3
+    networks:
+      - zk
+  kafka2:
+    image: wurstmeister/kafka
+    restart: always
+    container_name: kafka2
+    hostname: kafka2
+    ports:
+      - 9093:9093
+    environment:
+      TZ: "$TZ"
+      KAFKA_ADVERTISED_PORT: 9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://${IP}:9093
+      KAFKA_LISTENERS: PLAINTEXT://:9093
+      KAFKA_ZOOKEEPER_CONNECT: zk1:2181,zk2:2181,zk3:2181
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /etc/localtime:/etc/localtime
+      - ${KFK_DATA_DIR}:/kafka
+    external_links:
+      - zk1
+      - zk2
+      - zk3
+    networks:
+      - zk
+  kafka3:
+    image: wurstmeister/kafka
+    restart: always
+    container_name: kafka3
+    hostname: kafka3
+    ports:
+      - 9094:9094
+    environment:
+      TZ: "$TZ"
+      KAFKA_ADVERTISED_PORT: 9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://${IP}:9094
+      KAFKA_LISTENERS: PLAINTEXT://:9094
+      KAFKA_ZOOKEEPER_CONNECT: zk1:2181,zk2:2181,zk3:2181
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /etc/localtime:/etc/localtime
+      - ${KFK_DATA_DIR}:/kafka
+    external_links:
+      - zk1
+      - zk2
+      - zk3
+    networks:
+      - zk
+
+# 配置docker network
+networks:
+  default:
+  zk:
+#  kafka:
+#    external:
+#      name: kafka
+#networks:
+#  net-default:
+#    driver: bridge
+#    ipam:
+#      driver: default
+#      config:
+#        - subnet: 10.0.0.0/24

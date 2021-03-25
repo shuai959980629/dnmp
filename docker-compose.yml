@@ -1,0 +1,183 @@
+version: "3"
+services:
+  nginx:
+    # 容器名称
+    container_name: nginx
+    # 容器构建
+#    build:
+#      context: ./services/nginx
+#      args:
+#        NGINX_VERSION: ${NGINX_VERSION}
+#        CONTAINER_PACKAGE_URL: ${CONTAINER_PACKAGE_URL}
+#        NGINX_INSTALL_APPS: ${NGINX_INSTALL_APPS}
+    # 镜像
+    image: nginx
+    # 端口映射
+    ports:
+      - "${NGINX_HTTP_HOST_PORT}:80"
+      - "${NGINX_HTTPS_HOST_PORT}:443"
+    depends_on:
+      - redis
+      - mongodb
+      - php
+      - mysql
+    # 数据卷
+    volumes:
+      # php代码目录
+      - ${SOURCE_DIR}:/var/www/:rw
+      # https 证书
+      - ${NGINX_SSL_CERTIFICATE_DIR}:/ssl:rw
+      # 映射主机./conf.d 目录到容器/etc/nginx/conf.d目录
+      - ${NGINX_CONFD_DIR}:/etc/nginx/conf.d/:rw
+      # nginx 配置文件
+      - ${NGINX_CONF_FILE}:/etc/nginx/nginx.conf:ro
+      # nginx 日志目录
+      - ${NGINX_LOG_DIR}:/var/log/nginx/:rw
+    environment:
+      TZ: "$TZ"
+    restart: always
+    networks:
+      - default
+#    networks:
+#      net-default:
+#        ipv4_address: 10.0.0.10
+
+  php:
+    build:
+      context: ./services/php
+      args:
+        PHP_VERSION: php:${PHP_VERSION}-fpm
+    container_name: php
+    ports:
+      - "9000:9000"
+#    expose:
+#      - 9501
+    volumes:
+      - ${SOURCE_DIR}:/var/www/:rw
+      #- ${PHP_PHP_CONF_FILE}:/usr/local/etc/php/php.ini:rw
+      #- ${PHP_FPM_CONF_FILE}:/usr/local/etc/php-fpm.d/www.conf:rw
+      - ${PHP_LOG_DIR}:/var/log/php
+    environment:
+      TZ: "$TZ"
+    restart: always
+    networks:
+      - default
+
+  mysql:
+    image: mysql:${MYSQL_VERSION}
+    container_name: mysql
+    ports:
+      - "${MYSQL_HOST_PORT}:3306"
+    volumes:
+      - ${MYSQL_CONF_FILE}:/etc/mysql/conf.d/mysql.cnf:ro
+      - ${MYSQL_DATA_DIR}:/var/lib/mysql/:rw
+    restart: always
+    environment:
+      TZ: "$TZ"
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+#    command:
+#      --sql-mode="NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+    networks:
+      - default
+
+  redis:
+    image: redis:${REDIS_VERSION}
+    container_name: redis
+    ports:
+      - "${REDIS_HOST_PORT}:6379"
+    volumes:
+      - ${REDIS_CONF_FILE}:/etc/redis.conf:rw
+    restart: always
+    entrypoint: ["redis-server", "/etc/redis.conf"]
+    environment:
+      TZ: "$TZ"
+    networks:
+      - default
+
+  mongodb:
+    image: mongo:${MONGODB_VERSION}
+    container_name: mongodb
+    environment:
+        MONGO_INITDB_ROOT_USERNAME: "${MONGODB_INITDB_ROOT_USERNAME}"
+        MONGO_INITDB_ROOT_PASSWORD: "${MONGODB_INITDB_ROOT_PASSWORD}"
+        TZ: "$TZ"
+    volumes:
+      - ${MONGODB_DATA_DIR}:/data/db:rw
+      - ${MONGODB_DATA_DIR}/mongo_key:/mongo:rw
+    ports:
+       - "${MONGODB_HOST_PORT}:27017"
+    networks:
+       - default
+    command:
+       --auth
+
+  elasticsearch:
+    image: elasticsearch:${ELASTICSEARCH_VERSION}
+    container_name: elasticsearch
+    restart: always
+    environment:
+      - TZ=$TZ
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - ${ES0_DATA_DIR}:/usr/share/elasticsearch/data
+#      - ${ES0_LOG_DIR}:/usr/share/elasticsearch/logs
+#      - ${ELASTICSEARCH_CONF_FILE}:/usr/share/elasticsearch/config/elasticsearch.yml
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - elastic
+
+  kibana:
+    image: kibana:${ELASTICSEARCH_VERSION}
+    container_name: kibana
+    ports:
+      - 5601:5601
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
+    networks:
+      - elastic
+
+
+# https://www.rabbitmq.com/#getstarted
+  rabbitmq:
+#    https://registry.hub.docker.com/_/rabbitmq
+    image: rabbitmq
+#    image: rabbitmq:${RABBITMQ_VERSION}
+    container_name: rabbitmq
+    hostname: rabbitmq
+    restart: always
+    ports:
+      - "${RABBITMQ_HOST_PORT_C}:5672"
+      - "${RABBITMQ_HOST_PORT_S}:15672"
+    environment:
+       TZ: "$TZ"
+       RABBITMQ_DEFAULT_USER: "${RABBITMQ_DEFAULT_USER}"
+       RABBITMQ_DEFAULT_PASS: "${RABBITMQ_DEFAULT_PASS}"
+    volumes:
+      - ${LOGSTASH_DATA_DIR}:/var/lib/rabbitmq
+    networks:
+      - default
+
+
+# 配置docker network
+networks:
+  default:
+  elastic:
+    driver: bridge
+#  zk:
+#  kafka:
+#    external:
+#      name: kafka
+#networks:
+#  net-default:
+#    driver: bridge
+#    ipam:
+#      driver: default
+#      config:
+#        - subnet: 10.0.0.0/24
+
+
+

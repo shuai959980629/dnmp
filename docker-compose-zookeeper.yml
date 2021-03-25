@@ -1,0 +1,66 @@
+version: "3"
+services:
+  # zookeeper 集群
+  zk1:
+    image: zookeeper
+    restart: always
+    container_name: zk1
+    hostname: zk1
+    networks:
+      - zk
+    ports:
+      - "21811:2181"
+    volumes:
+      - ${ZK1_DATA_DIR}:/data:rw
+      - ${ZK1_DATALOG_DIR}:/datalog:rw
+      - ${ZK1_LOG_DIR}:/logs:rw
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=zk1:2888:3888;2181 server.2=zk2:2888:3888;2181 server.3=zk3:2888:3888;2181
+  zk2:
+    image: zookeeper
+    restart: always
+    container_name: zk2
+    hostname: zk2
+    networks:
+      - zk
+    ports:
+      - "21812:2181"
+    volumes:
+      - ${ZK2_DATA_DIR}:/data:rw
+      - ${ZK2_DATALOG_DIR}:/datalog:rw
+      - ${ZK2_LOG_DIR}:/logs:rw
+    environment:
+      ZOO_MY_ID: 2
+      ZOO_SERVERS: server.1=zk1:2888:3888;2181 server.2=zk2:2888:3888;2181 server.3=zk3:2888:3888;2181
+  zk3:
+    image: zookeeper
+    restart: always
+    container_name: zk3
+    hostname: zk3
+    networks:
+      - zk
+    ports:
+      - "21813:2181"
+    volumes:
+      - ${ZK3_DATA_DIR}:/data:rw
+      - ${ZK3_DATALOG_DIR}:/datalog:rw
+      - ${ZK3_LOG_DIR}:/logs:rw
+    environment:
+      ZOO_MY_ID: 3
+      ZOO_SERVERS: server.1=zk1:2888:3888;2181 server.2=zk2:2888:3888;2181 server.3=zk3:2888:3888;2181c
+
+# 配置docker network
+networks:
+  default:
+  zk:
+#  kafka:
+#    external:
+#      name: kafka
+#networks:
+#  net-default:
+#    driver: bridge
+#    ipam:
+#      driver: default
+#      config:
+#        - subnet: 10.0.0.0/24
